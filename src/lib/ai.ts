@@ -23,6 +23,8 @@ LAWYER RECOMMENDATIONS:
 
 const titlePrompt = `Generate a concise, professional title (3-5 words) for a legal conversation based on the user's message.`;
 
+const dialogTitlePrompt = `Generate a short, descriptive title (2-4 words) for a dialog box based on its content. The title should be clear and accessible for screen readers.`;
+
 export async function getAIResponse(userMessage: string, sessionId: string): Promise<{ response: string; showLawyers: boolean }> {
   try {
     // Enhanced pattern matching for lawyer requests
@@ -75,6 +77,25 @@ export async function generateTitle(userMessage: string): Promise<string> {
   } catch (error) {
     console.error('Error generating title:', error);
     return 'New Legal Inquiry';
+  }
+}
+
+export async function generateDialogTitle(content: string): Promise<string> {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'anthropic/claude-2.1',
+      messages: [
+        { role: 'system', content: dialogTitlePrompt },
+        { role: 'user', content: content }
+      ],
+      temperature: 0.3,
+      max_tokens: 50,
+    });
+
+    return completion.choices[0]?.message?.content || 'Dialog';
+  } catch (error) {
+    console.error('Error generating dialog title:', error);
+    return 'Dialog';
   }
 }
 
