@@ -1,124 +1,184 @@
-import React, { useState, useEffect } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
-import * as Tabs from '@radix-ui/react-tabs';
-import { X } from 'lucide-react';
-import { generateDialogTitle } from '../../lib/ai';
-import { Button } from './button';
-import { Card } from './card';
-import { Separator } from './separator';
-
-interface Lawyer {
-  id: string;
-  "Law Firm": string;
-  "Phone Number": string;
-  email: string;
-  website: string;
-  city: string;
-  state: string;
-  county: string;
-}
+import React from 'react';
+import { Card } from "./card";
+import { Dialog } from "./dialog";
+import { Button } from "./button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
+import { Separator } from "./separator";
+import { generateDialogTitle } from "../../lib/ai";
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface LawyerCardProps {
-  lawyer: Lawyer;
+  lawyer: {
+    id: string;
+    state: string;
+    city: string;
+    county: string;
+    "Law Firm": string;
+    "Phone Number": string;
+    email: string;
+    website: string;
+  };
 }
 
 export function LawyerCard({ lawyer }: LawyerCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [dialogTitle, setDialogTitle] = useState('Legal Professional Details');
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [dialogTitle, setDialogTitle] = React.useState("");
 
-  useEffect(() => {
-    const generateTitle = async () => {
-      const title = await generateDialogTitle(`Legal professional details for ${lawyer['Law Firm']}`);
-      setDialogTitle(title);
-    };
-    generateTitle();
-  }, [lawyer['Law Firm']]);
+  React.useEffect(() => {
+    if (isOpen) {
+      generateDialogTitle(`Law firm details for ${lawyer["Law Firm"]}`)
+        .then(title => setDialogTitle(title))
+        .catch(() => setDialogTitle("Law Firm Details"));
+    }
+  }, [isOpen, lawyer]);
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
-      <Dialog.Trigger asChild>
-        <Card className="p-4 cursor-pointer hover:shadow-md transition-shadow">
-          <div className="flex flex-col space-y-2">
-            <h3 className="font-semibold text-lg">{lawyer['Law Firm']}</h3>
-            <p className="text-sm text-gray-600">{lawyer.city}, {lawyer.state}</p>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">View Details</Button>
-            </div>
-          </div>
-        </Card>
-      </Dialog.Trigger>
+    <Card className="p-6 space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{lawyer["Law Firm"]}</h3>
+          <p className="text-sm text-gray-500">{lawyer.city}, {lawyer.state}</p>
+        </div>
+        <Button
+          variant="outline"
+          className="text-sm"
+          onClick={() => setIsOpen(true)}
+        >
+          View Details
+        </Button>
+      </div>
 
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 max-h-[85vh] w-[90vw] max-w-[800px] translate-x-[-50%] translate-y-[-50%] rounded-[12px] bg-white p-6 shadow-lg">
-          <Dialog.Title className="text-xl font-semibold mb-4">{dialogTitle}</Dialog.Title>
-          
-          <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Dialog.Close>
-
-          <Tabs.Root defaultValue="overview" className="w-full">
-            <Tabs.List className="flex space-x-4 border-b mb-4">
-              <Tabs.Trigger value="overview" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-gray-900">
-                Overview
-              </Tabs.Trigger>
-              <Tabs.Trigger value="case-results" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-gray-900">
-                Case Results
-              </Tabs.Trigger>
-              <Tabs.Trigger value="reviews" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:text-gray-900">
-                Reviews
-              </Tabs.Trigger>
-            </Tabs.List>
-
-            <Tabs.Content value="overview" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog.Content className="sm:max-w-[600px]">
+          <Dialog.Title className="text-xl font-semibold mb-4">
+            {dialogTitle}
+          </Dialog.Title>
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full grid grid-cols-3 mb-8">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="experience">Experience</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="space-y-6">
+              <div className="space-y-6">
                 <div>
-                  <h4 className="font-semibold mb-2">Contact Information</h4>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Phone:</span> {lawyer['Phone Number']}</p>
-                    <p><span className="font-medium">Email:</span> {lawyer.email}</p>
-                    <p><span className="font-medium">Website:</span> {lawyer.website}</p>
+                  <h4 className="text-lg font-semibold mb-4">{lawyer["Law Firm"]}</h4>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Location</p>
+                      <p className="text-sm text-gray-900">{lawyer.city}, {lawyer.state}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">County</p>
+                      <p className="text-sm text-gray-900">{lawyer.county}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Phone</p>
+                      <p className="text-sm text-gray-900">{lawyer["Phone Number"]}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Email</p>
+                      <p className="text-sm text-gray-900">{lawyer.email}</p>
+                    </div>
                   </div>
                 </div>
+
+                <Separator />
+
                 <div>
-                  <h4 className="font-semibold mb-2">Location</h4>
-                  <div className="space-y-2 text-sm">
-                    <p>{lawyer.city}, {lawyer.state}</p>
-                    <p>{lawyer.county} County</p>
+                  <h4 className="text-lg font-semibold mb-4">Practice Areas</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <img src="/group-1.svg" alt="" className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Family Law</p>
+                        <p className="text-xs text-gray-500">10+ years</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <img src="/group-1.svg" alt="" className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Criminal Defense</p>
+                        <p className="text-xs text-gray-500">8+ years</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <img src="/group-1.svg" alt="" className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Personal Injury</p>
+                        <p className="text-xs text-gray-500">12+ years</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <img src="/group-1.svg" alt="" className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Estate Planning</p>
+                        <p className="text-xs text-gray-500">5+ years</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">Education</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Harvard Law School</p>
+                      <p className="text-sm text-gray-500">Juris Doctor (J.D.), Law</p>
+                      <p className="text-sm text-gray-500">2005 - 2008</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Yale University</p>
+                      <p className="text-sm text-gray-500">Bachelor of Arts (B.A.), Political Science</p>
+                      <p className="text-sm text-gray-500">2001 - 2005</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">Languages</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">English</p>
+                      <p className="text-sm text-gray-500">Native or Bilingual</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Spanish</p>
+                      <p className="text-sm text-gray-500">Professional Working</p>
+                    </div>
                   </div>
                 </div>
               </div>
-              <Separator />
-              <div>
-                <h4 className="font-semibold mb-2">About the Firm</h4>
-                <p className="text-sm text-gray-600">
-                  {lawyer['Law Firm']} is a respected legal practice serving clients in {lawyer.city} and surrounding areas.
-                  With a commitment to excellence and client satisfaction, the firm provides comprehensive legal services
-                  tailored to meet individual needs.
-                </p>
-              </div>
-            </Tabs.Content>
-
-            <Tabs.Content value="case-results" className="space-y-4">
-              <p className="text-sm text-gray-600">Case results coming soon.</p>
-            </Tabs.Content>
-
-            <Tabs.Content value="reviews" className="space-y-4">
-              <p className="text-sm text-gray-600">Reviews coming soon.</p>
-            </Tabs.Content>
-          </Tabs.Root>
-
-          <div className="mt-6 flex justify-end space-x-2">
-            <Dialog.Close asChild>
-              <Button variant="outline">Close</Button>
-            </Dialog.Close>
-            <Button onClick={() => window.location.href = `tel:${lawyer['Phone Number']}`}>
-              Contact Now
+            </TabsContent>
+            <TabsContent value="experience">
+              <p className="text-gray-500">Experience information coming soon.</p>
+            </TabsContent>
+            <TabsContent value="reviews">
+              <p className="text-gray-500">Reviews coming soon.</p>
+            </TabsContent>
+          </Tabs>
+          <div className="mt-8 flex justify-end gap-4">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => window.location.href = `mailto:${lawyer.email}`}>
+              Contact Lawyer
             </Button>
           </div>
         </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </Dialog>
+    </Card>
   );
 }
