@@ -28,20 +28,21 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 interface DialogContentProps
   extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   children: React.ReactNode;
+  fallbackTitle?: string;
 }
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ children, className, ...props }, ref) => {
-  const [defaultTitle, setDefaultTitle] = React.useState<string | null>(null);
+>(({ children, className, fallbackTitle = "Dialog", ...props }, ref) => {
+  const [generatedTitle, setGeneratedTitle] = React.useState<string>(fallbackTitle);
   
-  const hasTitle = React.Children.toArray(children).some(
-    (child) => React.isValidElement(child) && child.type === DialogPrimitive.Title
+  const hasExplicitTitle = React.Children.toArray(children).some(
+    (child) => React.isValidElement(child) && child.type === DialogTitle
   );
 
   React.useEffect(() => {
-    if (!hasTitle) {
+    if (!hasExplicitTitle) {
       const textContent = React.Children.toArray(children)
         .map((child) => {
           if (typeof child === 'string') return child;
@@ -52,11 +53,17 @@ const DialogContent = React.forwardRef<
         })
         .join(' ');
 
-      generateDialogTitle(textContent).then(title => {
-        setDefaultTitle(title);
-      });
+      if (textContent.trim()) {
+        generateDialogTitle(textContent)
+          .then(title => {
+            setGeneratedTitle(title || fallbackTitle);
+          })
+          .catch(() => {
+            setGeneratedTitle(fallbackTitle);
+          });
+      }
     }
-  }, [children, hasTitle]);
+  }, [children, hasExplicitTitle, fallbackTitle]);
 
   return (
     <DialogPortal>
@@ -69,9 +76,9 @@ const DialogContent = React.forwardRef<
         )}
         {...props}
       >
-        {!hasTitle && defaultTitle && (
+        {!hasExplicitTitle && (
           <VisuallyHidden>
-            <DialogPrimitive.Title>{defaultTitle}</DialogPrimitive.Title>
+            <DialogTitle>{generatedTitle}</DialogTitle>
           </VisuallyHidden>
         )}
         {children}
