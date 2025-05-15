@@ -1,15 +1,18 @@
-import { Card } from "./card";
+import * as React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as Tabs from "@radix-ui/react-tabs";
+import { Badge } from "./badge";
 import { Button } from "./button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
-import { CalendarIcon, MessageSquareIcon, StarIcon } from "lucide-react";
+import { Card } from "./card";
+import { CalendarIcon, PhoneIcon, StarIcon } from "lucide-react";
 
 interface LawyerCardProps {
   lawyer: {
     id: string;
-    "Law Firm": string;
     state: string;
-    county: string;
     city: string;
+    county: string;
+    "Law Firm": string;
     "Phone Number": string;
     email: string;
     website: string;
@@ -18,149 +21,197 @@ interface LawyerCardProps {
 
 export function LawyerCard({ lawyer }: LawyerCardProps) {
   return (
-    <Card className="w-full overflow-hidden bg-white rounded-2xl">
-      <div className="p-4 space-y-4">
-        {/* Header */}
-        <div className="bg-[#F4F1FF] -mx-4 -mt-4 p-4 mb-4">
-          <div className="text-[#6246EA] text-sm font-medium">Recommeded Attorney for DUI Cases in Hamilton Country</div>
-        </div>
-
-        {/* Status and Title */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-green-600 text-sm">Available Now</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="#6246EA"/>
-                <path d="M12.0002 14.5C6.99016 14.5 2.91016 17.86 2.91016 22C2.91016 22.28 3.13016 22.5 3.41016 22.5H20.5902C20.8702 22.5 21.0902 22.28 21.0902 22C21.0902 17.86 17.0102 14.5 12.0002 14.5Z" fill="#6246EA"/>
-              </svg>
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+          <div className="p-4 space-y-4">
+            <div className="bg-purple-50 text-purple-700 text-sm py-1 px-3 rounded-full w-fit">
+              Available Now
             </div>
-            <div>
-              <h2 className="text-xl font-semibold">Top Rated Criminal Lawyer in Hamilton County</h2>
-              <div className="text-[#6246EA] font-medium">{lawyer["Law Firm"]}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button variant="outline" className="flex-1 py-6">
-            <CalendarIcon className="w-5 h-5 mr-2" />
-            Schedule
-          </Button>
-          <Button className="flex-1 py-6 bg-[#6246EA] hover:bg-[#5039e5]">
-            <MessageSquareIcon className="w-5 h-5 mr-2" />
-            Connect Me Now
-          </Button>
-        </div>
-
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="case-results">Case Results</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-4">
-            <div className="space-y-6">
-              {/* Rating and Badges */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center">
-                  {[1, 2, 3, 4].map((i) => (
-                    <StarIcon key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                  <StarIcon className="w-5 h-5 fill-yellow-400 text-yellow-400 fill-[50%]" />
-                </div>
-                <div className="flex gap-2">
-                  <span className="px-2 py-1 bg-[#FFF8E6] text-[#B98900] rounded-full text-xs">⭐ LawPro Verified</span>
-                  <span className="px-2 py-1 bg-[#F4F1FF] text-[#6246EA] rounded-full text-xs">💬 Free Consultant</span>
+            
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="8" r="5" />
+                  <path d="M20 21a8 8 0 1 0-16 0" />
+                </svg>
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">Top Rated Criminal Lawyer in {lawyer.county}</h3>
+                <p className="text-gray-600 font-medium">{lawyer["Law Firm"]}</p>
+                
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 4.5].map((rating, i) => (
+                      <StarIcon
+                        key={i}
+                        className={`w-4 h-4 ${
+                          rating <= 4 ? "text-yellow-400 fill-current" : "text-yellow-400 fill-current opacity-50"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <Badge variant="outline" className="ml-2">
+                    See More
+                  </Badge>
                 </div>
               </div>
+            </div>
+          </div>
+        </Card>
+      </Dialog.Trigger>
 
-              {/* Description */}
-              <p className="text-gray-600 text-sm leading-relaxed">
-                At the Wieczorek Law Firm, we pride ourselves on serving our clients with the utmost care and attention to detail. Whether you're facing felony charges or misdemeanor charges, we understand that a criminal conviction can have devastating long-term effects on your life.
-              </p>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+        <Dialog.Content className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-2xl w-full md:h-[85vh] bg-white rounded-t-2xl md:rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
+          <div className="p-4 md:p-6 flex-1 overflow-y-auto">
+            <Dialog.Close className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </Dialog.Close>
 
-              {/* Video Preview */}
-              <div className="relative aspect-video bg-gray-100 rounded-lg">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                    <div className="w-0 h-0 border-t-8 border-t-transparent border-l-12 border-l-gray-800 border-b-8 border-b-transparent ml-1"></div>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="bg-purple-50 text-purple-700 text-sm py-1 px-3 rounded-full w-fit">
+                  Available Now
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="8" r="5" />
+                      <path d="M20 21a8 8 0 1 0-16 0" />
+                    </svg>
+                  </div>
+                  
+                  <div>
+                    <h2 className="text-2xl font-semibold">Top Rated Criminal Lawyer in {lawyer.county}</h2>
+                    <p className="text-gray-600 text-lg">{lawyer["Law Firm"]}</p>
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">Meet Attorney Wieczorek and learn about his approach to criminal defense cases.</p>
 
-              {/* Practice Areas */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#6246EA] rounded-full"></div>
-                  <span className="text-sm">Criminal Defense</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#6246EA] rounded-full"></div>
-                  <span className="text-sm">DUI Defense</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#6246EA] rounded-full"></div>
-                  <span className="text-sm">Domestic Violence</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#6246EA] rounded-full"></div>
-                  <span className="text-sm">Drug Charges</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#6246EA] rounded-full"></div>
-                  <span className="text-sm">Probation Violations</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-[#6246EA] rounded-full"></div>
-                  <span className="text-sm">Expungements</span>
-                </div>
+              <div className="flex gap-4">
+                <Button className="flex-1 gap-2">
+                  <CalendarIcon className="w-5 h-5" />
+                  Schedule
+                </Button>
+                <Button className="flex-1 gap-2" variant="outline">
+                  <PhoneIcon className="w-5 h-5" />
+                  Call Now
+                </Button>
               </div>
+
+              <Tabs.Root defaultValue="overview" className="w-full">
+                <Tabs.List className="flex gap-1 border-b">
+                  <Tabs.Trigger value="overview" className="px-4 py-2 text-gray-600 data-[state=active]:text-black data-[state=active]:border-b-2 data-[state=active]:border-black">
+                    Overview
+                  </Tabs.Trigger>
+                  <Tabs.Trigger value="case-results" className="px-4 py-2 text-gray-600 data-[state=active]:text-black data-[state=active]:border-b-2 data-[state=active]:border-black">
+                    Case Results
+                  </Tabs.Trigger>
+                  <Tabs.Trigger value="reviews" className="px-4 py-2 text-gray-600 data-[state=active]:text-black data-[state=active]:border-b-2 data-[state=active]:border-black">
+                    Reviews
+                  </Tabs.Trigger>
+                </Tabs.List>
+
+                <Tabs.Content value="overview" className="py-4">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 4.5].map((rating, i) => (
+                          <StarIcon
+                            key={i}
+                            className={`w-5 h-5 ${
+                              rating <= 4 ? "text-yellow-400 fill-current" : "text-yellow-400 fill-current opacity-50"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <Badge variant="outline">LawPro Verified</Badge>
+                      <Badge variant="secondary">Free Consultant</Badge>
+                    </div>
+
+                    <p className="text-gray-600">
+                      At the {lawyer["Law Firm"]}, we pride ourselves on serving our clients with
+                      the utmost care and attention to detail. Whether you're facing felony
+                      charges or misdemeanor charges, we understand that a criminal
+                      conviction can have devastating long-term effects on your life.
+                    </p>
+
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M10 8l6 4-6 4V8z" />
+                      </svg>
+                    </div>
+
+                    <p className="text-sm text-gray-500">
+                      Meet Attorney {lawyer["Law Firm"].split(" ")[0]} and learn about their approach to criminal
+                      defense cases.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-purple-600">
+                        <div>• Criminal Defense</div>
+                        <div>• Domestic Violence</div>
+                        <div>• Probation Violations</div>
+                      </div>
+                      <div className="text-purple-600">
+                        <div>• DUI Defense</div>
+                        <div>• Drug Charges</div>
+                        <div>• Expungements</div>
+                      </div>
+                    </div>
+                  </div>
+                </Tabs.Content>
+
+                <Tabs.Content value="case-results" className="py-4">
+                  <div className="space-y-6">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-semibold text-lg">DUI Defense</h3>
+                        <Badge>Charges Reduced</Badge>
+                      </div>
+                      <p className="mt-2 text-gray-600">
+                        Client facing felony DUI charges had case reduced to misdemeanor with minimal penalties.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-semibold text-lg">Drug Possession</h3>
+                        <Badge>Charges Dismissed</Badge>
+                      </div>
+                      <p className="mt-2 text-gray-600">
+                        Successfully argued illegal search and seizure, resulting in complete dismissal of all charges.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-semibold text-lg">Domestic Violence</h3>
+                        <Badge>Not Guilty Verdict</Badge>
+                      </div>
+                      <p className="mt-2 text-gray-600">
+                        Jury trial resulting in full acquittal after presenting evidence of false accusations.
+                      </p>
+                    </div>
+                  </div>
+                </Tabs.Content>
+
+                <Tabs.Content value="reviews" className="py-4">
+                  <div className="text-center text-gray-500 py-8">
+                    Reviews coming soon
+                  </div>
+                </Tabs.Content>
+              </Tabs.Root>
             </div>
-          </TabsContent>
-
-          <TabsContent value="case-results" className="mt-4 space-y-4">
-            <div className="space-y-4">
-              <div className="p-4 bg-white rounded-lg border">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold">DUI Defense</h3>
-                  <span className="px-2 py-1 bg-[#FFF8E6] text-[#B98900] rounded-full text-xs">Charges Reduced</span>
-                </div>
-                <p className="text-sm text-gray-600">Client facing felony DUI charges had case reduced to misdemeanor with minimal penalties.</p>
-              </div>
-
-              <div className="p-4 bg-white rounded-lg border">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold">Drug Possession</h3>
-                  <span className="px-2 py-1 bg-[#FFF8E6] text-[#B98900] rounded-full text-xs">Charges Dismissed</span>
-                </div>
-                <p className="text-sm text-gray-600">Successfully argued illegal search and seizure, resulting in complete dismissal of all charges.</p>
-              </div>
-
-              <div className="p-4 bg-white rounded-lg border">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold">Domestic Violence</h3>
-                  <span className="px-2 py-1 bg-[#FFF8E6] text-[#B98900] rounded-full text-xs">Not Guilty Verdict</span>
-                </div>
-                <p className="text-sm text-gray-600">Jury trial resulting in full acquittal after presenting evidence of false accusations.</p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reviews" className="mt-4">
-            <div className="text-center text-gray-500 py-8">
-              Reviews coming soon
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Card>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
