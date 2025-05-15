@@ -20,7 +20,7 @@ interface LawyerCardProps {
   };
 }
 
-export function LawyerCard({ lawyer }: LawyerCardProps) {
+export const LawyerCard = ({ lawyer }: LawyerCardProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [dialogTitle, setDialogTitle] = React.useState("");
 
@@ -181,4 +181,4 @@ export function LawyerCard({ lawyer }: LawyerCardProps) {
       </Dialog>
     </Card>
   );
-}
+};
