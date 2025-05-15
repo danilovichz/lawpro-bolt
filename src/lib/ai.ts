@@ -32,13 +32,13 @@ export async function getAIResponse(userMessage: string, sessionId: string): Pro
     /(?:lawyer|attorney|legal).+(?:near|around|in|available|nearby)/i.test(userMessage);
 
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-2.1',
+      model: 'openai/gpt-4.1',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
       temperature: 0.7,
-      max_tokens: 300,
+      max_tokens: 800,    // Increased from 300 to 800
     });
 
     let response = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
@@ -64,13 +64,13 @@ export async function getAIResponse(userMessage: string, sessionId: string): Pro
 export async function generateTitle(userMessage: string): Promise<string> {
   try {
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-2.1',
+      model: 'openai/gpt-4.1',
       messages: [
         { role: 'system', content: titlePrompt },
         { role: 'user', content: userMessage }
       ],
       temperature: 0.3,
-      max_tokens: 50,
+      max_tokens: 100,    // Increased from 50 to 100
     });
 
     return completion.choices[0]?.message?.content || 'New Legal Inquiry';
@@ -83,13 +83,13 @@ export async function generateTitle(userMessage: string): Promise<string> {
 export async function generateDialogTitle(content: string): Promise<string> {
   try {
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-2.1',
+      model: 'openai/gpt-4.1',
       messages: [
         { role: 'system', content: dialogTitlePrompt },
         { role: 'user', content: content }
       ],
       temperature: 0.3,
-      max_tokens: 50,
+      max_tokens: 100,    // Increased from 50 to 100
     });
 
     return completion.choices[0]?.message?.content || 'Dialog';
