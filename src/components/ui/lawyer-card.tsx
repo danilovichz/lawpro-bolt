@@ -4,7 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "./button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
 import { Separator } from "./separator";
-import { generateDialogTitle } from "../../lib/ai";
+import { generateDialogTitle } from "../../../lib/ai";
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface LawyerCardProps {
