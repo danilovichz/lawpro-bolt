@@ -30,6 +30,8 @@ export async function generateTitle(userMessage: string): Promise<string> {
 
 export async function sendMessageToWebhook(message: string, chatId: string): Promise<string> {
   try {
+    console.log('Sending message to webhook:', { message, chatId });
+    
     const response = await fetch('https://n8n.srv799397.hstgr.cloud/webhook/lawpro', {
       method: 'POST',
       headers: {
@@ -42,15 +44,18 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
     });
 
     if (!response.ok) {
+      console.error('Webhook response not OK:', response.status);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
-    // The response is an array with a single object containing output.response
+    console.log('Webhook response data:', data);
+
     if (Array.isArray(data) && data.length > 0 && data[0].output?.response) {
       return data[0].output.response;
     }
     
+    console.error('Unexpected response format:', data);
     return 'I apologize, but I was unable to process your request at this time. Please try again.';
   } catch (error) {
     console.error('Error sending message to webhook:', error);
