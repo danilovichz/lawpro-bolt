@@ -37,7 +37,7 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
       },
       body: JSON.stringify({ 
         message,
-        chatId 
+        chatId
       }),
     });
 
@@ -46,7 +46,7 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
     }
 
     const data = await response.json();
-    return data.message || 'No response received';
+    return data.response || 'No response received';
   } catch (error) {
     console.error('Error sending message to webhook:', error);
     return 'Error: Could not process your request';
