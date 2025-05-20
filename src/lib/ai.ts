@@ -28,20 +28,27 @@ export async function generateTitle(userMessage: string): Promise<string> {
   }
 }
 
-export async function sendMessageToWebhook(message: string): Promise<void> {
+export async function sendMessageToWebhook(message: string, chatId: string): Promise<string> {
   try {
     const response = await fetch('https://n8n.srv799397.hstgr.cloud/webhook/lawpro', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ 
+        message,
+        chatId 
+      }),
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    return data.message || 'No response received';
   } catch (error) {
     console.error('Error sending message to webhook:', error);
+    return 'Error: Could not process your request';
   }
 }

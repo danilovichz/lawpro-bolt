@@ -223,7 +223,22 @@ export const Screen = (): JSX.Element => {
       if (userError) throw userError;
 
       setMessages(prev => [...prev, userMessage]);
-      await sendMessageToWebhook(`File uploaded: ${file.name}`);
+
+      const response = await sendMessageToWebhook(`File uploaded: ${file.name}`, sessionId);
+      
+      const { data: aiMessage, error: aiError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          session_id: sessionId,
+          content: response,
+          is_user: false
+        }])
+        .select()
+        .single();
+
+      if (aiError) throw aiError;
+
+      setMessages(prev => [...prev, aiMessage]);
 
     } catch (error) {
       console.error('Error handling file upload:', error);
@@ -266,7 +281,21 @@ export const Screen = (): JSX.Element => {
         await updateSessionTitle(sessionId, messageText);
       }
 
-      await sendMessageToWebhook(messageText);
+      const response = await sendMessageToWebhook(messageText, sessionId);
+      
+      const { data: aiMessage, error: aiError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          session_id: sessionId,
+          content: response,
+          is_user: false
+        }])
+        .select()
+        .single();
+
+      if (aiError) throw aiError;
+
+      setMessages(prev => [...prev, aiMessage]);
 
     } catch (error) {
       console.error('Error in message handling:', error);
