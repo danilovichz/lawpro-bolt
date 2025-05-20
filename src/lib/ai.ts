@@ -4,6 +4,10 @@ import { supabase } from './supabase';
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: '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',
+  defaultHeaders: {
+    'HTTP-Referer': 'https://localhost:5173', // Required for OpenRouter
+    'X-Title': 'Legal Assistant Chat' // Required for OpenRouter
+  },
   dangerouslyAllowBrowser: true
 });
 
