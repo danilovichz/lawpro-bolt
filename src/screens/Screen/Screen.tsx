@@ -21,19 +21,13 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Textarea } from "../../components/ui/textarea";
 import { supabase } from "../../lib/supabase";
-import { getAIResponse, generateTitle, findLocalLawyers } from "../../lib/ai";
-import { LawyerCard } from "../../components/ui/lawyer-card";
+import { generateTitle, sendMessageToWebhook } from "../../lib/ai";
 
 interface Message {
   id: string;
   content: string;
   is_user: boolean;
   created_at: string;
-  metadata?: {
-    name?: string;
-    size?: number;
-    lawyers?: any[];
-  };
 }
 
 interface ChatSession {
@@ -44,14 +38,10 @@ interface ChatSession {
 }
 
 const loadingMessages = [
-  "Let me think about that...",
-  "Looking into similar cases...",
-  "Checking what the law says...",
-  "Finding the best way to explain this...",
-  "Putting the pieces together...",
-  "Almost ready with an answer...",
-  "Making sure I get this right...",
-  "Breaking this down for you..."
+  "Processing your message...",
+  "One moment please...",
+  "Working on it...",
+  "Almost ready..."
 ];
 
 export const Screen = (): JSX.Element => {
@@ -97,7 +87,6 @@ export const Screen = (): JSX.Element => {
 
   const loadSessions = async () => {
     try {
-      // First check if we can connect to Supabase
       const { error: connectionError } = await supabase
         .from('chat_sessions')
         .select('count', { count: 'exact', head: true });
@@ -123,13 +112,6 @@ export const Screen = (): JSX.Element => {
       }
     } catch (error) {
       console.error('Error in loadSessions:', error);
-      // You might want to show this error to the user in a more user-friendly way
-      // For now, we'll just log it to help with debugging
-      console.error('Please check:');
-      console.error('1. Your Supabase project is running');
-      console.error('2. Your environment variables are correct');
-      console.error('3. Your network connection is stable');
-      console.error('4. CORS is properly configured in Supabase');
     }
   };
 
@@ -209,10 +191,6 @@ export const Screen = (): JSX.Element => {
     }
   };
 
-  const formatMessageContent = (content: string) => {
-    return content.replace(/-/g, '•');
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -236,12 +214,8 @@ export const Screen = (): JSX.Element => {
         .from('chat_messages')
         .insert([{
           session_id: sessionId,
-          content: formatMessageContent(`Attached file: ${file.name}`),
-          is_user: true,
-          metadata: {
-            name: file.name,
-            size: file.size,
-          }
+          content: `Attached file: ${file.name}`,
+          is_user: true
         }])
         .select()
         .single();
@@ -249,22 +223,8 @@ export const Screen = (): JSX.Element => {
       if (userError) throw userError;
 
       setMessages(prev => [...prev, userMessage]);
+      await sendMessageToWebhook(`File uploaded: ${file.name}`);
 
-      const { response } = await getAIResponse(`The user has uploaded a file named ${file.name}. Please acknowledge receipt of the file and ask how you can help with it.`, sessionId);
-
-      const { data: aiMessage, error: aiError } = await supabase
-        .from('chat_messages')
-        .insert([{
-          session_id: sessionId,
-          content: formatMessageContent(response),
-          is_user: false
-        }])
-        .select()
-        .single();
-
-      if (aiError) throw aiError;
-
-      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error handling file upload:', error);
     } finally {
@@ -292,7 +252,7 @@ export const Screen = (): JSX.Element => {
         .from('chat_messages')
         .insert([{
           session_id: sessionId,
-          content: formatMessageContent(messageText),
+          content: messageText,
           is_user: true
         }])
         .select()
@@ -306,44 +266,7 @@ export const Screen = (): JSX.Element => {
         await updateSessionTitle(sessionId, messageText);
       }
 
-      const { response, showLawyers } = await getAIResponse(messageText, sessionId);
-
-      const { data: aiMessage, error: aiError } = await supabase
-        .from('chat_messages')
-        .insert([{
-          session_id: sessionId,
-          content: formatMessageContent(response),
-          is_user: false
-        }])
-        .select()
-        .single();
-
-      if (aiError) throw aiError;
-
-      setMessages(prev => [...prev, aiMessage]);
-
-      if (showLawyers) {
-        const lawyers = await findLocalLawyers();
-        
-        if (lawyers && lawyers.length > 0) {
-          const recommendationMessage = "Here are some qualified legal professionals who might be able to help with your case:";
-          
-          const { data: recommendationMsg, error: recError } = await supabase
-            .from('chat_messages')
-            .insert([{
-              session_id: sessionId,
-              content: recommendationMessage,
-              is_user: false,
-              metadata: { lawyers }
-            }])
-            .select()
-            .single();
-
-          if (!recError && recommendationMsg) {
-            setMessages(prev => [...prev, recommendationMsg]);
-          }
-        }
-      }
+      await sendMessageToWebhook(messageText);
 
     } catch (error) {
       console.error('Error in message handling:', error);
@@ -358,57 +281,6 @@ export const Screen = (): JSX.Element => {
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
-    });
-  };
-
-  const formatMessage = (content: string, metadata?: any) => {
-    if (metadata?.lawyers) {
-      return (
-        <div className="space-y-4">
-          <p className="mb-4">{content}</p>
-          <div className="grid gap-4">
-            {metadata.lawyers.map((lawyer: any, index: number) => (
-              <LawyerCard key={`${lawyer.id}-${index}`} lawyer={lawyer} />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    const sections = content.split(/(?=^\d+\.|^[A-Z][^.!?]*:)/m);
-    
-    return sections.map((section, i) => {
-      const lines = section.trim().split('\n');
-      
-      const isNumberedHeader = /^\d+\./.test(lines[0]);
-      const isHeader = /^[A-Z][^.!?]*:/.test(lines[0]);
-      const isListItem = /^[•-]/.test(lines[0]);
-      
-      return (
-        <div key={i} className="mb-4 last:mb-0">
-          {lines.map((line, j) => {
-            if (j === 0 && (isHeader || isNumberedHeader)) {
-              return (
-                <h3 key={j} className="font-semibold text-lg mb-2">
-                  {line}
-                </h3>
-              );
-            }
-            if (isListItem) {
-              return (
-                <li key={j} className="mb-2 last:mb-0 ml-4">
-                  {line.replace(/^[•-]/, '').trim()}
-                </li>
-              );
-            }
-            return line.trim() && (
-              <p key={j} className="mb-2 last:mb-0 leading-relaxed">
-                {line}
-              </p>
-            );
-          })}
-        </div>
-      );
     });
   };
 
@@ -556,12 +428,7 @@ export const Screen = (): JSX.Element => {
                             ? 'bg-indigo-700 text-white rounded-br-none' 
                             : 'bg-gray-100 text-gray-900 rounded-bl-none'
                         }`}>
-                          {formatMessage(message.content, message.metadata)}
-                          {message.metadata?.name && (
-                            <div className="mt-2 text-xs md:text-sm">
-                              📎 {message.metadata.name} ({(message.metadata.size / 1024 / 1024).toFixed(2)}MB)
-                            </div>
-                          )}
+                          {message.content}
                         </div>
                         <span className="text-[10px] md:text-xs text-gray-500 mt-1">
                           {formatTime(message.created_at)}
