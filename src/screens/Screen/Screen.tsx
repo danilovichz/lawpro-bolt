@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
-import { LawyerCard } from '@/components/ui/lawyer-card';
-import { LawyerPreview } from '@/components/ui/lawyer-preview';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Separator } from '../../components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Textarea } from '../../components/ui/textarea';
+import { useToast } from '../../components/ui/use-toast';
+import { supabase } from '../../lib/supabase';
+import { LawyerCard } from '../../components/ui/lawyer-card';
+import { LawyerPreview } from '../../components/ui/lawyer-preview';
 
 export function Screen() {
   const { id: sessionId } = useParams();
