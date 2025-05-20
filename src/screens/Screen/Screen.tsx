@@ -1,182 +1,575 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Separator } from '../../components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { Textarea } from '../../components/ui/textarea';
-import { useToast } from '../../components/ui/use-toast';
-import { supabase } from '../../lib/supabase';
-import { LawyerCard } from '../../components/ui/lawyer-card';
-import { LawyerPreview } from '../../components/ui/lawyer-preview';
+import {
+  ArrowRightIcon,
+  ClockIcon,
+  LockIcon,
+  MenuIcon,
+  PlusCircleIcon,
+  SendIcon,
+  SettingsIcon,
+  UsersIcon,
+  XIcon,
+  Trash2Icon,
+} from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { nanoid } from 'nanoid';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../../components/ui/avatar";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import { Textarea } from "../../components/ui/textarea";
+import { supabase } from "../../lib/supabase";
+import { generateTitle, sendMessageToWebhook } from "../../lib/ai";
 
-export function Screen() {
-  const { id: sessionId } = useParams();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+interface Message {
+  id: string;
+  content: string;
+  is_user: boolean;
+  created_at: string;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  created_at: string;
+  session_key: string;
+}
+
+const loadingMessages = [
+  "Processing your message...",
+  "One moment please...",
+  "Working on it...",
+  "Almost ready..."
+];
+
+export const Screen = (): JSX.Element => {
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSession, setCurrentSession] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [lawyers, setLawyers] = useState<any[]>([]);
-  const [selectedLawyer, setSelectedLawyer] = useState<any>(null);
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const loadingIntervalRef = useRef<NodeJS.Timeout>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const browserSessionId = useRef(nanoid());
 
   useEffect(() => {
-    if (sessionId) {
-      fetchMessages();
-      fetchLawyers();
-    }
-  }, [sessionId]);
+    loadSessions();
+  }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages, loadingMessage]);
 
-  const fetchMessages = async () => {
+  useEffect(() => {
+    if (isLoading) {
+      let index = 0;
+      loadingIntervalRef.current = setInterval(() => {
+        setLoadingMessage(loadingMessages[index]);
+        index = (index + 1) % loadingMessages.length;
+      }, 2000);
+    } else {
+      if (loadingIntervalRef.current) {
+        clearInterval(loadingIntervalRef.current);
+        setLoadingMessage("");
+      }
+    }
+    return () => {
+      if (loadingIntervalRef.current) {
+        clearInterval(loadingIntervalRef.current);
+      }
+    };
+  }, [isLoading]);
+
+  const loadSessions = async () => {
     try {
-      const { data: messages, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
+      const { error: connectionError } = await supabase
+        .from('chat_sessions')
+        .select('count', { count: 'exact', head: true });
 
-      if (error) throw error;
-      setMessages(messages || []);
+      if (connectionError) {
+        throw new Error(`Connection test failed: ${connectionError.message}`);
+      }
+
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('session_key', browserSessionId.current)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to fetch sessions: ${error.message}`);
+      }
+
+      setSessions(data || []);
+      if (data && data.length > 0) {
+        setCurrentSession(data[0].id);
+        loadMessages(data[0].id);
+      }
     } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch messages',
-        variant: 'destructive',
-      });
+      console.error('Error in loadSessions:', error);
     }
   };
 
-  const fetchLawyers = async () => {
-    try {
-      const { data: lawyers, error } = await supabase
-        .from('lawyers_real')
-        .select('*')
-        .limit(10);
+  const loadMessages = async (sessionId: string) => {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setLawyers(lawyers || []);
-    } catch (error) {
-      console.error('Error fetching lawyers:', error);
+    if (error) {
+      console.error('Error loading messages:', error);
+      return;
+    }
+
+    setMessages(data || []);
+  };
+
+  const removeSessionFromUI = (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSessions(sessions.filter(session => session.id !== sessionId));
+    if (currentSession === sessionId) {
+      setCurrentSession(null);
+      setMessages([]);
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || isLoading) return;
-
-    setIsLoading(true);
+  const createNewSession = async () => {
     try {
-      const { data: message, error } = await supabase
-        .from('chat_messages')
+      const newSessionKey = nanoid();
+      const { data: session, error: sessionError } = await supabase
+        .from('chat_sessions')
         .insert([
-          {
-            session_id: sessionId,
-            content: newMessage,
-            is_user: true,
-          },
+          { 
+            title: 'New Chat',
+            session_key: newSessionKey
+          }
         ])
         .select()
         .single();
 
+      if (sessionError) throw sessionError;
+
+      setSessions([session, ...sessions]);
+      return session;
+    } catch (error) {
+      console.error('Error in createNewSession:', error);
+      return null;
+    }
+  };
+
+  const updateSessionTitle = async (sessionId: string, messageText: string) => {
+    try {
+      const title = await generateTitle(messageText);
+      const { error } = await supabase
+        .from('chat_sessions')
+        .update({ title })
+        .eq('id', sessionId);
+
       if (error) throw error;
 
-      setMessages((prev) => [...prev, message]);
-      setNewMessage('');
+      setSessions(sessions.map(session => 
+        session.id === sessionId ? { ...session, title } : session
+      ));
     } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send message',
-        variant: 'destructive',
-      });
+      console.error('Error in updateSessionTitle:', error);
+    }
+  };
+
+  const handleNewChat = async () => {
+    const session = await createNewSession();
+    if (session) {
+      setCurrentSession(session.id);
+      setMessages([]);
+      setCurrentMessage("");
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Please select a file smaller than 5MB");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      let sessionId = currentSession;
+      if (!sessionId) {
+        const session = await createNewSession();
+        if (!session) return;
+        sessionId = session.id;
+        setCurrentSession(sessionId);
+      }
+
+      const { data: userMessage, error: userError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          session_id: sessionId,
+          content: `Attached file: ${file.name}`,
+          is_user: true
+        }])
+        .select()
+        .single();
+
+      if (userError) throw userError;
+
+      setMessages(prev => [...prev, userMessage]);
+
+      const response = await sendMessageToWebhook(`File uploaded: ${file.name}`, sessionId);
+      
+      const { data: aiMessage, error: aiError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          session_id: sessionId,
+          content: response,
+          is_user: false
+        }])
+        .select()
+        .single();
+
+      if (aiError) throw aiError;
+
+      setMessages(prev => [...prev, aiMessage]);
+
+    } catch (error) {
+      console.error('Error handling file upload:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || isLoading) return;
+
+    setIsLoading(true);
+    const messageText = currentMessage;
+    setCurrentMessage("");
+
+    try {
+      let sessionId = currentSession;
+      if (!sessionId) {
+        const session = await createNewSession();
+        if (!session) return;
+        sessionId = session.id;
+        setCurrentSession(sessionId);
+      }
+
+      const { data: userMessage, error: userError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          session_id: sessionId,
+          content: messageText,
+          is_user: true
+        }])
+        .select()
+        .single();
+
+      if (userError) throw userError;
+
+      setMessages(prev => [...prev, userMessage]);
+
+      if (messages.length === 0) {
+        await updateSessionTitle(sessionId, messageText);
+      }
+
+      const response = await sendMessageToWebhook(messageText, sessionId);
+      
+      const { data: aiMessage, error: aiError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          session_id: sessionId,
+          content: response,
+          is_user: false
+        }])
+        .select()
+        .single();
+
+      if (aiError) throw aiError;
+
+      setMessages(prev => [...prev, aiMessage]);
+
+    } catch (error) {
+      console.error('Error in message handling:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.is_user ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                <Card
-                  className={`max-w-[70%] p-4 ${
-                    message.is_user
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-white text-gray-900'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </Card>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+    <div className="flex w-full h-screen bg-[#f7f7f7] overflow-hidden">
+      <button
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? (
+          <XIcon className="w-6 h-6" />
+        ) : (
+          <MenuIcon className="w-6 h-6" />
+        )}
+      </button>
+
+      <aside className={`
+        fixed md:relative w-[272px] h-full bg-[#f7f7f7] shadow-[20px_4px_34px_#00000003]
+        transform transition-transform duration-300 z-40
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
+        <div className="flex w-full items-center p-3 border-b border-[#eaeaea]">
+          <div className="flex items-center gap-3 p-3">
+            <div className="flex w-[43px] h-[43px] items-center justify-center bg-[#f2f2f2] rounded-[8px] border border-[#00000005]">
+              <img
+                className="w-[29px] h-[26px]"
+                alt="Logo"
+                src="/frame-2147227290.svg"
+              />
+            </div>
+            <span className="font-semibold text-[23px] text-[#161616] tracking-[-1px]">
+              LawPro
+            </span>
           </div>
         </div>
-        <div className="p-4 border-t bg-white">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={isLoading}>
-              Send
-            </Button>
-          </form>
-        </div>
-      </div>
-      <div className="w-80 border-l bg-white p-4">
-        <Tabs defaultValue="lawyers">
-          <TabsList className="w-full">
-            <TabsTrigger value="lawyers" className="flex-1">
-              Lawyers
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1">
-              Preview
-            </TabsTrigger>
-          </TabsList>
-          <Separator className="my-4" />
-          <TabsContent value="lawyers" className="space-y-4">
-            {lawyers.map((lawyer) => (
-              <LawyerCard
-                key={lawyer.id}
-                lawyer={lawyer}
-                onSelect={() => setSelectedLawyer(lawyer)}
-              />
+
+        <div className="flex flex-col h-[calc(100%-180px)] p-5 gap-5">
+          <Button
+            variant="outline"
+            onClick={handleNewChat}
+            className="flex items-center justify-between w-full p-3 bg-white rounded-lg border-[#eaeaea]"
+          >
+            <div className="flex items-center gap-2">
+              <PlusCircleIcon className="w-5 h-5" />
+              <span>New Chat</span>
+            </div>
+            <ArrowRightIcon className="w-5 h-5" />
+          </Button>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="mb-2 text-neutral-400 text-xs uppercase tracking-[0.48px]">
+              Current Session
+            </div>
+            {sessions.map((session) => (
+              <div key={session.id} className="flex items-center group">
+                <Button
+                  variant="ghost"
+                  className={`flex-1 text-left p-3 text-sm ${
+                    currentSession === session.id ? 'bg-gray-200' : 'text-[#5c5c5c] hover:bg-gray-100'
+                  }`}
+                  onClick={() => {
+                    setCurrentSession(session.id);
+                    loadMessages(session.id);
+                    setIsSidebarOpen(false);
+                  }}
+                >
+                  {session.title}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => removeSessionFromUI(session.id, e)}
+                >
+                  <Trash2Icon className="w-4 h-4 text-red-500" />
+                </Button>
+              </div>
             ))}
-          </TabsContent>
-          <TabsContent value="preview">
-            {selectedLawyer ? (
-              <LawyerPreview lawyer={selectedLawyer} />
+          </div>
+
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 p-3 w-full text-left text-[#5c5c5c]"
+          >
+            <SettingsIcon className="w-5 h-5" />
+            <span>Settings</span>
+          </Button>
+        </div>
+
+        <div className="absolute bottom-0 w-full border-t border-[#eaeaea] bg-[#f7f7f7]">
+          <div className="flex items-center gap-3 p-6">
+            <Avatar className="w-10 h-10 bg-[#ffecc0]">
+              <AvatarImage src="/image.png" alt="User" />
+              <AvatarFallback>JD</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-[#161616]">Jay Dwivedi</span>
+                <img className="w-5 h-5" alt="Verified" src="/verified-fill.svg" />
+              </div>
+              <div className="text-sm text-[#5c5c5c]">jay@sprrrint.com</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="flex-1 p-2 md:p-[9px] w-full">
+        <Card className="h-[calc(100vh-16px)] md:h-[calc(100vh-18px)] bg-white rounded-xl md:rounded-[30px] shadow-[-12px_4px_25.3px_#00000005]">
+          <CardContent className="flex flex-col h-full p-4 md:p-8">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1 max-w-[560px] mx-auto text-center px-4">
+                <img
+                  className="w-[67px] h-[60px] mb-[13px]"
+                  alt="Logo"
+                  src="/subtract.svg"
+                />
+                <h1 className="text-2xl md:text-[34px] font-semibold text-[#000000d1] tracking-[-1.7px] leading-[1.2] mb-3">
+                  Have a Legal Question?
+                </h1>
+                <p className="text-sm md:text-[14px] text-[#00000099] leading-[1.6]">
+                  Ask me below about your situation, and I'll explain what it all
+                  means in language that actually makes sense.
+                </p>
+              </div>
             ) : (
-              <p className="text-center text-gray-500">
-                Select a lawyer to preview
-              </p>
+              <div className="flex-1 overflow-y-auto space-y-4 md:space-y-6 mb-4 px-2 md:px-4">
+                {messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.is_user ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex items-start gap-2 max-w-[90%] md:max-w-[80%] ${message.is_user ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <Avatar className={`w-8 h-8 md:w-10 md:h-10 ${message.is_user ? 'bg-indigo-100' : 'bg-[#f2f2f2] border border-[#00000005]'}`}>
+                        {message.is_user ? (
+                          <AvatarFallback>U</AvatarFallback>
+                        ) : (
+                          <img
+                            className="w-5 h-5 md:w-[29px] md:h-[26px]"
+                            alt="LawPro"
+                            src="/frame-2147227290.svg"
+                          />
+                        )}
+                      </Avatar>
+                      <div className={`flex flex-col ${message.is_user ? 'items-end' : 'items-start'}`}>
+                        <div className={`p-3 md:p-4 rounded-2xl text-sm md:text-base ${
+                          message.is_user 
+                            ? 'bg-indigo-700 text-white rounded-br-none' 
+                            : 'bg-gray-100 text-gray-900 rounded-bl-none'
+                        }`}>
+                          {message.content}
+                        </div>
+                        <span className="text-[10px] md:text-xs text-gray-500 mt-1">
+                          {formatTime(message.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex items-start gap-2 max-w-[90%] md:max-w-[80%]">
+                      <Avatar className="w-8 h-8 md:w-10 md:h-10 bg-[#f2f2f2] border border-[#00000005]">
+                        <img
+                          className="w-5 h-5 md:w-[29px] md:h-[26px]"
+                          alt="LawPro"
+                          src="/frame-2147227290.svg"
+                        />
+                      </Avatar>
+                      <div className="flex flex-col items-start">
+                        <div className="p-3 md:p-4 rounded-2xl bg-gray-100 text-gray-900 rounded-bl-none">
+                          <div className="flex items-center gap-2">
+                            <div className="animate-pulse w-2 h-2 bg-gray-500 rounded-full"></div>
+                            <div className="animate-pulse w-2 h-2 bg-gray-500 rounded-full delay-100"></div>
+                            <div className="animate-pulse w-2 h-2 bg-gray-500 rounded-full delay-200"></div>
+                          </div>
+                          <p className="mt-2 text-xs md:text-sm text-gray-600">{loadingMessage}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
-      </div>
+
+            <div className="mt-auto">
+              <div className="bg-[#f7f7f7] rounded-2xl p-3 md:p-4">
+                <div className="flex items-start gap-3 mb-4">
+                  <img
+                    className="w-[19px] h-[19px]"
+                    alt="Group"
+                    src="/group-9.png"
+                  />
+                  <Textarea
+                    className="flex-1 bg-transparent border-none resize-none focus-visible:ring-0 p-0 text-sm md:text-base"
+                    placeholder="Ask a legal question..."
+                    value={currentMessage}
+                    onChange={(e) => setCurrentMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept="image/*,.pdf,.doc,.docx"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="p-2"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                  >
+                    <img
+                      className="w-5 h-5"
+                      alt="Paperclip"
+                      src="/paperclip-1.svg"
+                    />
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      className={`w-[38px] h-[38px] bg-indigo-700 rounded-[8.51px] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={handleSendMessage}
+                      disabled={isLoading}
+                    >
+                      <SendIcon className="w-5 h-5 text-white" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-center items-center gap-2 md:gap-[18px] mt-4 md:mt-6 px-2">
+                <div className="flex items-center gap-[5px]">
+                  <ClockIcon className="w-4 h-4 md:w-[17px] md:h-[17px]" />
+                  <span className="text-xs md:text-[13px] text-[#000000d1] whitespace-nowrap">Available 24/7</span>
+                </div>
+                <div className="hidden md:block w-1 h-1 bg-[#e7e7e7] rounded-full" />
+                <div className="flex items-center gap-[5px]">
+                  <LockIcon className="w-4 h-4 md:w-[17px] md:h-[17px]" />
+                  <span className="text-xs md:text-[13px] text-[#000000d1] whitespace-nowrap">Securely Encrypted</span>
+                </div>
+                <div className="hidden md:block w-1 h-1 bg-[#e7e7e7] rounded-full" />
+                <div className="flex items-center gap-[5px]">
+                  <UsersIcon className="w-4 h-4 md:w-[17px] md:h-[17px]" />
+                  <span className="text-xs md:text-[13px] text-[#000000d1] whitespace-nowrap">For the people</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
-}
+};
