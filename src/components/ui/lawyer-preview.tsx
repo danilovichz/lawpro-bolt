@@ -5,7 +5,6 @@ import { Star, X } from 'lucide-react';
 import { Button } from './button';
 import { Avatar } from './avatar';
 import { Badge } from './badge';
-import { generateDialogTitle } from '../../lib/ai';
 
 interface LawyerPreviewProps {
   lawyer: {
@@ -22,14 +21,7 @@ interface LawyerPreviewProps {
 
 export const LawyerPreview: React.FC<LawyerPreviewProps> = ({ lawyer }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [dialogTitle, setDialogTitle] = React.useState('Lawyer Profile');
-
-  React.useEffect(() => {
-    if (isOpen) {
-      generateDialogTitle(`${lawyer['Law Firm']} - ${lawyer.city}, ${lawyer.state}`)
-        .then(title => setDialogTitle(title));
-    }
-  }, [isOpen, lawyer]);
+  const dialogTitle = 'Lawyer Profile';
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
