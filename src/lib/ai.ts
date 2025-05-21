@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: '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',
+  apiKey: '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',
   dangerouslyAllowBrowser: true
 });
 
@@ -14,7 +14,7 @@ const titlePrompt = `Generate a concise, professional title (3-5 words) for a le
 export async function generateTitle(userMessage: string): Promise<string> {
   try {
     const completion = await openai.chat.completions.create({
-      model: 'openai/gpt-4.1',
+      model: 'gpt-4',
       messages: [
         { role: 'system', content: titlePrompt },
         { role: 'user', content: userMessage }
