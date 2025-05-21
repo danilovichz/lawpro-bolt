@@ -10,7 +10,7 @@ import {
   XIcon,
   Trash2Icon,
 } from "lucide-react";
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { nanoid } from 'nanoid';
 import {
   Avatar,
@@ -482,12 +482,21 @@ export const Screen = (): JSX.Element => {
                         )}
                       </Avatar>
                       <div className={`flex flex-col ${message.is_user ? 'items-end' : 'items-start'}`}>
-                        <div className={`p-3 md:p-4 rounded-2xl text-sm md:text-base ${
-                          message.is_user 
-                            ? 'bg-indigo-700 text-white rounded-br-none' 
-                            : 'bg-gray-100 text-gray-900 rounded-bl-none'
-                        }`}>
-                          {message.content}
+                        <div 
+                          className={`p-3 md:p-4 rounded-2xl text-sm md:text-base ${
+                            message.is_user 
+                              ? 'bg-indigo-700 text-white rounded-br-none' 
+                              : 'bg-gray-100 text-gray-900 rounded-bl-none'
+                          }`}
+                        >
+                          {message.is_user ? (
+                            <span>{message.content}</span>
+                          ) : (
+                            <div 
+                              className="prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: message.content }}
+                            />
+                          )}
                         </div>
                         <span className="text-[10px] md:text-xs text-gray-500 mt-1">
                           {formatTime(message.created_at)}

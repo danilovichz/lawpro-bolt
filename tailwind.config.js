@@ -6,6 +6,31 @@ module.exports = {
   ],
   theme: {
     extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'inherit',
+            p: {
+              marginTop: '0.5em',
+              marginBottom: '0.5em',
+            },
+            'ul, ol': {
+              paddingLeft: '1.25em',
+              marginTop: '0.5em',
+              marginBottom: '0.5em',
+            },
+            li: {
+              marginTop: '0.25em',
+              marginBottom: '0.25em',
+            },
+            strong: {
+              color: 'inherit',
+              fontWeight: '600',
+            },
+          },
+        },
+      },
       fontFamily: {
         "label-small": "var(--label-small-font-family)",
         "label-x-small": "var(--label-x-small-font-family)",
@@ -86,6 +111,7 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/line-clamp'),
+    require('@tailwindcss/typography'),
   ],
   darkMode: ["class"],
 };
