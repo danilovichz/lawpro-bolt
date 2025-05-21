@@ -46,25 +46,31 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
     }
 
     const data = await response.json();
-    console.log('Webhook Response Data:', data); // Log the response for debugging
+    console.log('Webhook Response Data:', data);
 
     // Handle array response format
     if (Array.isArray(data) && data.length > 0) {
+      let responseText = '';
       if (data[0].output?.response) {
-        return data[0].output.response;
+        responseText = data[0].output.response;
+      } else if (typeof data[0].response === 'string') {
+        responseText = data[0].response;
       }
-      if (typeof data[0].response === 'string') {
-        return data[0].response;
+      if (responseText) {
+        return formatResponse(responseText);
       }
     }
     
     // Handle object response format
     if (typeof data === 'object' && data !== null) {
+      let responseText = '';
       if (data.output?.response) {
-        return data.output.response;
+        responseText = data.output.response;
+      } else if (typeof data.response === 'string') {
+        responseText = data.response;
       }
-      if (typeof data.response === 'string') {
-        return data.response;
+      if (responseText) {
+        return formatResponse(responseText);
       }
     }
 
@@ -74,4 +80,26 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
     console.error('Error sending message to webhook:', error);
     throw error;
   }
+}
+
+function formatResponse(text: string): string {
+  // Replace plain hyphens with bullet points
+  text = text.replace(/^\s*-\s*/gm, '• ');
+  
+  // Add line breaks between sections
+  text = text.replace(/\.\s+(?=[A-Z])/g, '.\n\n');
+  
+  // Add emphasis to important phrases
+  text = text.replace(
+    /(IMPORTANT|NOTE|WARNING|CRITICAL|immediately|must|required by law)/gi,
+    '**$1**'
+  );
+  
+  // Format numbered lists
+  text = text.replace(/^\d+\.\s+/gm, (match) => `\n${match}`);
+  
+  // Add spacing after bullet points for better readability
+  text = text.replace(/•\s*([^\n]+)/g, '• $1\n');
+  
+  return text.trim();
 }
