@@ -14,7 +14,7 @@ const titlePrompt = `Generate a concise, professional title (3-5 words) for a le
 export async function generateTitle(userMessage: string): Promise<string> {
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'openai/gpt-4.1',
       messages: [
         { role: 'system', content: titlePrompt },
         { role: 'user', content: userMessage }
