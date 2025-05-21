@@ -46,14 +46,19 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
     }
 
     const data = await response.json();
-    // The response is an array with a single object containing output.response
-    if (Array.isArray(data) && data.length > 0 && data[0].output?.response) {
-      return data[0].output.response;
+    
+    // Check if data is an array and has at least one element
+    if (Array.isArray(data) && data.length > 0) {
+      // Check if the first element has an output object with a response property
+      const firstItem = data[0];
+      if (firstItem && firstItem.output && typeof firstItem.output.response === 'string') {
+        return firstItem.output.response;
+      }
     }
     
-    return 'I apologize, but I was unable to process your request at this time. Please try again.';
+    throw new Error('Invalid response format from webhook');
   } catch (error) {
     console.error('Error sending message to webhook:', error);
-    return 'I apologize, but there was an error processing your request. Please try again later.';
+    throw error;
   }
 }
