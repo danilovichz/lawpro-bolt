@@ -1,5 +1,11 @@
 {
+  "scripts": {
+    "dev": "vite"
+  },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.10"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
   }
 }
