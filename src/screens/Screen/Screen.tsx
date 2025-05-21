@@ -242,6 +242,13 @@ export const Screen = (): JSX.Element => {
 
     } catch (error) {
       console.error('Error handling file upload:', error);
+      const errorMessage = {
+        id: nanoid(),
+        content: "I apologize, but there was an error processing your file. Please try again.",
+        is_user: false,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -299,7 +306,6 @@ export const Screen = (): JSX.Element => {
 
     } catch (error) {
       console.error('Error in message handling:', error);
-      // Add the error message to the chat
       const errorMessage = {
         id: nanoid(),
         content: "I apologize, but there was an error processing your request. Please try again.",

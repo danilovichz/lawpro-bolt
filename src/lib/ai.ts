@@ -47,15 +47,10 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
 
     const data = await response.json();
     
-    // Check if data is an array and has at least one element
-    if (Array.isArray(data) && data.length > 0) {
-      // Check if the first element has an output object with a response property
-      const firstItem = data[0];
-      if (firstItem && firstItem.output && typeof firstItem.output.response === 'string') {
-        return firstItem.output.response;
-      }
+    if (Array.isArray(data) && data.length > 0 && data[0].output?.response) {
+      return data[0].output.response;
     }
-    
+
     throw new Error('Invalid response format from webhook');
   } catch (error) {
     console.error('Error sending message to webhook:', error);
