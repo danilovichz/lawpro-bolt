@@ -240,11 +240,19 @@ export const Screen = (): JSX.Element => {
 
       setMessages(prev => [...prev, aiMessage]);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error handling file upload:', error);
+      let errorMessageContent = "I apologize, but there was an error processing your file. Please try again.";
+
+      if (error.message === 'Invalid response format from webhook') {
+        errorMessageContent = "The service is experiencing technical difficulties. Please try again later.";
+      } else if (error.message?.includes('HTTP error! status:')) {
+        errorMessageContent = "Failed to connect to the service. Please check your internet connection and try again.";
+      }
+
       const errorMessage = {
         id: nanoid(),
-        content: "I apologize, but there was an error processing your file. Please try again.",
+        content: errorMessageContent,
         is_user: false,
         created_at: new Date().toISOString()
       };
@@ -304,11 +312,19 @@ export const Screen = (): JSX.Element => {
 
       setMessages(prev => [...prev, aiMessage]);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in message handling:', error);
+      let errorMessageContent = "I apologize, but there was an error processing your request. Please try again.";
+
+      if (error.message === 'Invalid response format from webhook') {
+        errorMessageContent = "The service is experiencing technical difficulties. Please try again later.";
+      } else if (error.message?.includes('HTTP error! status:')) {
+        errorMessageContent = "Failed to connect to the service. Please check your internet connection and try again.";
+      }
+
       const errorMessage = {
         id: nanoid(),
-        content: "I apologize, but there was an error processing your request. Please try again.",
+        content: errorMessageContent,
         is_user: false,
         created_at: new Date().toISOString()
       };
