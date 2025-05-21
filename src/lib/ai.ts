@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { supabase } from './supabase';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: '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',
+  apiKey: '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',
   dangerouslyAllowBrowser: true
 });
 
@@ -83,23 +85,28 @@ export async function sendMessageToWebhook(message: string, chatId: string): Pro
 }
 
 function formatResponse(text: string): string {
-  // Replace plain hyphens with bullet points
-  text = text.replace(/^\s*-\s*/gm, '• ');
+  // Add proper markdown formatting
+  let formattedText = text
+    // Ensure proper spacing for bullet points
+    .replace(/^\s*-\s*/gm, '\n* ')
+    // Add emphasis to important words
+    .replace(/(IMPORTANT|NOTE|WARNING|CRITICAL|immediately|must|required by law)/gi, '**$1**')
+    // Ensure proper spacing for numbered lists
+    .replace(/(\d+)\.\s*/g, '\n$1. ')
+    // Add line breaks between sentences that start new topics
+    .replace(/\.\s+(?=[A-Z])/g, '.\n\n')
+    // Clean up any excessive newlines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Convert markdown to HTML
+  const htmlContent = marked(formattedText, { breaks: true });
   
-  // Add line breaks between sections
-  text = text.replace(/\.\s+(?=[A-Z])/g, '.\n\n');
-  
-  // Add emphasis to important phrases
-  text = text.replace(
-    /(IMPORTANT|NOTE|WARNING|CRITICAL|immediately|must|required by law)/gi,
-    '**$1**'
-  );
-  
-  // Format numbered lists
-  text = text.replace(/^\d+\.\s+/gm, (match) => `\n${match}`);
-  
-  // Add spacing after bullet points for better readability
-  text = text.replace(/•\s*([^\n]+)/g, '• $1\n');
-  
-  return text.trim();
+  // Sanitize the HTML
+  const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+    ALLOWED_ATTR: []
+  });
+
+  return sanitizedHtml;
 }
